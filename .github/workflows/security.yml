@@ -122,6 +122,9 @@ jobs:
       - name: Perform Analysis
         uses: github/codeql-action/analyze@v3
 
+
+ 
+
   # ═══════════════════════════════════════
   # 4. SECRET DETECTION
   # Détecte les SECRETS accidentellement committés : clés API, mots de passe, tokens
@@ -140,6 +143,21 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+       # ═══════════════════════════════════════
+  # exo 4:  SECURITY GATE
+  # Bloque le pipeline si les étapes précédentes ont échoué
+  # ═══════════════════════════════════════
+  security-gate:
+    name: 🚦 Security Gate
+    runs-on: ubuntu-latest
+    needs: [sast, sca, container-scan, codeql, secrets]
+    steps:
+      - name: Check results
+        run: |
+          echo "✅ No critical vulnerabilities detected in previous stages."
+          echo "🚦 Security Gate: PASSED"
+
 
   # ═══════════════════════════════════════
   # 5. CONTAINER SCAN
@@ -176,7 +194,7 @@ jobs:
   report:
     name: 📊 Report
     runs-on: ubuntu-latest
-    needs: [sast, sca, secrets, container-scan, codeql]
+    needs: [sast, sca, secrets, container-scan, codeql, security-gate]
     if: always()
     steps:
       - name: Generate JSON Report
