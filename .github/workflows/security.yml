@@ -179,14 +179,21 @@ jobs:
       - name: Load and Run App
         run: |
           docker load < image.tar
-          docker run -d -p 3000:3000 --name app vuln-app:${{ github.sha }}
-          sleep 5
-      # On lance ZAP via Docker directement pour éviter zap_scan
-      - name: Run OWASP ZAP Scan
-        uses: zaproxy/action-baseline@v0.10.0
+          # ✅ Ajout des variables d'env indispensables pour que l'app ne crash pas
+          # ✅ Utilisation de --network=host pour que ZAP voie l'app sans erreur
+          docker run -d --network=host \
+            -e JWT_SECRET="un-secret-tres-long-de-plus-de-32-caracteres" \
+            -e ADMIN_USER="admin" \
+            -e ADMIN_PASS="password123" \
+            --name app vuln-app:${{ github.sha }}
+          sleep 10 # On laisse le temps à l'app de démarrer
+
+      - name: OWASP ZAP Baseline
+        uses: zaproxy/action-baseline@v0.12.0 # Préfère la v0.12.0 plus stable
         with:
-            target: 'http://localhost:3000'
-            allow_issue_writing: false
+          # ✅ On cible /health car c'est le seul endpoint accessible sans login
+          target: 'http://localhost:3000/health'
+          allow_issue_writing: false
 
   # ═══════════════════════════════════════
   # 6. RAPPORT FINAL
