@@ -161,6 +161,7 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL'
 
+# Après container-scan
 
   dast:
     name: ⚡ DAST
@@ -178,30 +179,15 @@ jobs:
       - name: Load and Run App
         run: |
           docker load < image.tar
-          docker run -d --network=host \
-            -e JWT_SECRET="test-secret-de-32-caracteres-minimum" \
-            -e ADMIN_USER="admin" \
-            -e ADMIN_PASS="password123" \
-            --name app vuln-app:${{ github.sha }}
-          sleep 15
-
+          docker run -d -p 3000:3000 --name app vuln-app:${{ github.sha }}
+          sleep 5
       # On lance ZAP via Docker directement pour éviter zap_scan
       - name: Run OWASP ZAP Scan
-        run: |
-          docker run --network=host -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-            -t http://localhost:3000/health \
-            -J report.json \
-            -r report.html || true 
-            
-      #On upload nous-mêmes les fichiers avec un nom valide qui bloque pas
-      - name: Upload DAST Reports
-        uses: actions/upload-artifact@v4
-        if: always()
+        uses: zaproxy/action-baseline@v0.10.0
         with:
-          name: zap-dast-report
-          path: |
-            report.json
-            report.html
+            target: 'http://localhost:3000'
+            allow_issue_writing: false
+
   # ═══════════════════════════════════════
   # 6. RAPPORT FINAL
   # Génère un résumé de tous les scans de sécurité
