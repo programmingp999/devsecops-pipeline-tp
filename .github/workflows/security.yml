@@ -100,6 +100,29 @@ jobs:
           path: src/audit.json
 
   # ═══════════════════════════════════════
+  # 3.2 CodeQL - Analyse statique native GitHub
+  # ═══════════════════════════════════════
+  codeql:
+    name: 🔍 CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # Obligatoire pour afficher les alertes dans l'onglet Security
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # ═══════════════════════════════════════
   # 4. SECRET DETECTION
   # Détecte les SECRETS accidentellement committés : clés API, mots de passe, tokens
   # Outil : Gitleaks qui scanne tout l'historique Git (fetch-depth: 0)
@@ -153,7 +176,7 @@ jobs:
   report:
     name: 📊 Report
     runs-on: ubuntu-latest
-    needs: [sast, sca, secrets, container-scan]
+    needs: [sast, sca, secrets, container-scan, codeql]
     if: always()
     steps:
       - name: Generate JSON Report
