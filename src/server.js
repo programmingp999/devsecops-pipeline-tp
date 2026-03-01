@@ -56,16 +56,11 @@ app.get('/debug', (req, res) => {
 res.json({ message: 'Debug mode' });
 });
 }
-// Exercice 1 : Ajout d'une vulnérabilité d'Injection SQL
-const mysql = require('mysql'); // Simulé
-const db = mysql.createConnection({ host: 'localhost', user: 'root', password: 'password' });
-
-app.get('/api/users/:id', (req, res) => {
-    const userId = req.params.id;
-    const sql = "SELECT * FROM users WHERE id = " + userId; 
-    
-    db.query(sql, (err, result) => {
-        res.json({ message: "Recherche effectuée", query: sql });
-    });
+//Exercice 1 : Ajout d'une vulnérabilité d'Injection de Code (détectable par SAST)
+app.get('/api/calculate/:expr', (req, res) => {
+    const expression = req.params.expr;
+    // VULNÉRABILITÉ CRITIQUE : eval() exécute n'importe quel code JavaScript
+    const result = eval(expression); 
+    res.json({ result });
 });
 app.listen(3000, () => console.log('✅ Secure server running'));
