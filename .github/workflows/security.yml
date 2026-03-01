@@ -27,46 +27,6 @@ jobs:
           path: image.tar
 
 
-# Après container-scan
-
-  dast:
-    name: ⚡ DAST
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-      
-      - name: Prepare Workspace
-        run: chmod -R 777 .
-
-      - name: Load and Run App with Logs
-        run: |
-          docker load < image.tar
-          # Lancement avec les secrets nécessaires pour que l'app ne crash pas
-          docker run -d --network=host \
-            -e JWT_SECRET="test-secret-de-32-caracteres-minimum" \
-            -e ADMIN_USER="admin" \
-            -e ADMIN_PASS="password123" \
-            --name app vuln-app:${{ github.sha }}
-          
-          echo "⏳ Waiting for app to start..."
-          sleep 10
-          
-          echo "🔍 Checking if app is running:"
-          docker ps
-          
-          echo "📝 App Logs (Check for errors here):"
-          docker logs app
-
-      - name: OWASP ZAP Baseline
-        uses: zaproxy/action-baseline@v0.12.0 # Version mise à jour
-        with:
-          target: 'http://localhost:3000/health' # On cible l'endpoint de santé
-          artifact_name: 'zap-report'
-
   # ═══════════════════════════════════════
   # 2. SAST - Analyse statique du code (Static Application Security Testing)
   # Détecte les vulnérabilités dans le CODE SOURCE : injection SQL, XSS, failles de sécurité
@@ -200,6 +160,46 @@ jobs:
           format: 'table'
           exit-code: '0' # On ne bloque pas pour le TP, on veut juste le rapport
           severity: 'CRITICAL,HIGH'
+
+
+  dast:
+    name: ⚡ DAST
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      issues: write # ✅ Correctement placé ici pour permettre à ZAP de créer des alertes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+      
+      - name: Prepare Workspace
+        run: chmod -R 777 .
+
+      - name: Load and Run App with Logs
+        run: |
+          docker load < image.tar
+          docker run -d --network=host \
+            -e JWT_SECRET="test-secret-de-32-caracteres-minimum" \
+            -e ADMIN_USER="admin" \
+            -e ADMIN_PASS="password123" \
+            --name app vuln-app:${{ github.sha }}
+          
+          echo "⏳ Waiting for app to start..."
+          sleep 10
+          
+          echo "🔍 Checking if app is running:"
+          docker ps
+          
+          echo "📝 App Logs:"
+          docker logs app
+
+      - name: OWASP ZAP Baseline
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:3000/health'
+          artifact_name: 'zap-report'  
   # ═══════════════════════════════════════
   # 6. RAPPORT FINAL
   # Génère un résumé de tous les scans de sécurité
