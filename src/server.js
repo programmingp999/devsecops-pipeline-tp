@@ -56,4 +56,18 @@ app.get('/debug', (req, res) => {
 res.json({ message: 'Debug mode' });
 });
 }
+// Exercice 1 : Ajout d'une vulnérabilité d'Injection SQL
+app.get('/api/users/:id', (req, res) => {
+    const userId = req.params.id;
+    // VULNÉRABILITÉ : Concaténation directe de l'entrée utilisateur dans la requête
+    const query = `SELECT * FROM users WHERE id = '${userId}'`; 
+    
+    console.log(`Executing query: ${query}`);
+    
+    // On simule une réponse de base de données
+    res.json({ 
+        message: "User data retrieved", 
+        sql_executed: query 
+    });
+});
 app.listen(3000, () => console.log('✅ Secure server running'));
