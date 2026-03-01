@@ -158,8 +158,8 @@ jobs:
         with:
           image-ref: 'vuln-app:${{ github.sha }}'
           format: 'table'
-          exit-code: '0' # On ne bloque pas pour le TP, on veut juste le rapport
-          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          severity: 'CRITICAL'
 
 
   dast:
