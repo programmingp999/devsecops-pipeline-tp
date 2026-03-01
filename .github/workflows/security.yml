@@ -84,7 +84,7 @@ jobs:
     name: 🔍 CodeQL
     runs-on: ubuntu-latest
     permissions:
-      security-events: write # Obligatoire pour afficher les alertes dans l'onglet Security
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -154,7 +154,7 @@ jobs:
       - name: Load image
         run: docker load < image.tar
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.20.0 # Version fixée plus stable
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'vuln-app:${{ github.sha }}'
           format: 'table'
@@ -166,8 +166,6 @@ jobs:
     name: ⚡ DAST
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      issues: write # ✅ Correctement placé ici pour permettre à ZAP de créer des alertes
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -177,7 +175,7 @@ jobs:
       - name: Prepare Workspace
         run: chmod -R 777 .
 
-      - name: Load and Run App with Logs
+      - name: Load and Run App
         run: |
           docker load < image.tar
           docker run -d --network=host \
@@ -185,21 +183,25 @@ jobs:
             -e ADMIN_USER="admin" \
             -e ADMIN_PASS="password123" \
             --name app vuln-app:${{ github.sha }}
-          
-          echo "⏳ Waiting for app to start..."
-          sleep 10
-          
-          echo "🔍 Checking if app is running:"
-          docker ps
-          
-          echo "📝 App Logs:"
-          docker logs app
+          sleep 15
 
-      - name: OWASP ZAP Baseline
-        uses: zaproxy/action-baseline@v0.12.0
+      # On lance ZAP via Docker directement pour éviter zap_scan
+      - name: Run OWASP ZAP Scan
+        run: |
+          docker run --network=host -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+            -t http://localhost:3000/health \
+            -J report.json \
+            -r report.html || true 
+            
+      #On upload nous-mêmes les fichiers avec un nom valide qui bloque pas
+      - name: Upload DAST Reports
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          target: 'http://localhost:3000/health'
-          fail_action: false #j'ai mis ça car le zap_report et zap_scan ne passent pas
+          name: zap-dast-report
+          path: |
+            report.json
+            report.html
   # ═══════════════════════════════════════
   # 6. RAPPORT FINAL
   # Génère un résumé de tous les scans de sécurité
