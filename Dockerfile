@@ -1,5 +1,8 @@
-# ✅ Image Alpine (plus légère et sécurisée) - Version la plus récente
+# ✅ Image Alpine (plus légère et sécurisée)
 FROM node:22-alpine
+
+# ✅ Mise à jour des paquets de l'OS pour patcher les vulnérabilités (ex: zlib)
+RUN apk update && apk upgrade
 
 WORKDIR /app
 
